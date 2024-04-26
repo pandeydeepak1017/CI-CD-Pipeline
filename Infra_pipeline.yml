@@ -1,0 +1,112 @@
+
+trigger: none
+
+
+pool:
+  vmImage: ubuntu-latest
+  
+variables: 
+  MY_VAR: '$(Build.SourcesDirectory)'
+
+parameters:
+- name: image
+  displayName: Pool Image
+  type: string
+  default: ubuntu-latest
+  values:
+  - windows-latest
+  - ubuntu-latest
+  - macOS-latest
+
+stages:
+- stage: init
+  displayName: init
+  
+  jobs:
+  - job: init
+    displayName: init
+    pool: 
+      vmImage: ubuntu-latest
+    steps:
+    - task: tfsec@1
+      inputs:
+        version: 'v1.26.0'
+        dir: '$(Build.SourcesDirectory)'
+    - task: TerraformInstaller@1
+      inputs:
+        terraformVersion: 'latest'
+    - task: TerraformTaskV4@4
+      inputs:
+        provider: 'azurerm'
+        command: 'init'
+        workingDirectory: $(MY_VAR)
+        backendServiceArm: 'Deepak_terraform_service'
+        backendAzureRmResourceGroupName: 'deepakrg'
+        backendAzureRmStorageAccountName: 'deepaknewstorageacc'
+        backendAzureRmContainerName: 'deepakcontanier'
+        backendAzureRmKey: 'prod.terraform.tfstate'
+
+- stage: plan 
+  displayName: plan
+  
+  jobs:
+  - job: plan
+    displayName: plan
+    pool: 
+      vmImage: ubuntu-latest
+    steps:
+    - task: TerraformTaskV4@4
+      inputs:
+        provider: 'azurerm'
+        command: 'init'
+        workingDirectory: $(MY_VAR)
+        backendServiceArm: 'Deepak_terraform_service'
+        backendAzureRmResourceGroupName: 'deepakrg'
+        backendAzureRmStorageAccountName: 'deepaknewstorageacc'
+        backendAzureRmContainerName: 'deepakcontanier'
+        backendAzureRmKey: 'prod.terraform.tfstate'
+    - task: TerraformTaskV4@4
+      inputs:
+        provider: 'azurerm'
+        command: 'plan'
+        workingDirectory: $(MY_VAR)
+        environmentServiceNameAzureRM: 'Deepak_terraform_service'
+
+- stage: manual_approval
+  displayName: manual_approval
+  
+  jobs:
+  - job: manual
+    displayName: manual
+    timeoutInMinutes: 90
+    pool: server
+    steps:
+    - task: ManualValidation@0
+      inputs:
+        notifyUsers: 'deepakpandey1247@gmail.com'
+        onTimeout: 'resume'
+- stage: apply
+  displayName: apply
+  
+  jobs:
+  - job: apply
+    displayName: apply
+    pool: 
+      vmImage: ubuntu-latest
+    steps:
+    - task: TerraformTaskV4@4
+      inputs:
+        provider: 'azurerm'
+        command: 'init'
+        workingDirectory: $(MY_VAR)
+        backendServiceArm: 'Deepak_terraform_service'
+        backendAzureRmResourceGroupName: 'deepakrg'
+        backendAzureRmStorageAccountName: 'deepaknewstorageacc'
+        backendAzureRmContainerName: 'deepakcontanier'
+        backendAzureRmKey: 'prod.terraform.tfstate'
+    - task: TerraformTaskV4@4
+      inputs:
+        provider: 'azurerm'
+        command: 'apply'
+        workingDirectory: $(MY_VAR)
+        environmentServiceNameAzureRM: 'Deepak_terraform_service'
